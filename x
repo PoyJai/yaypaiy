@@ -1,64 +1,35 @@
 <?php
-// --- 1. SETTINGS & SESSION ---
 session_start();
 require_once 'db_config.php'; 
 
-// --- 2. LOGIC: AUTHENTICATION ---
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('location: login.php'); 
-    exit; 
-}
+// --- 1. LOGIC: ดึงข้อมูลสินค้าของเล่น ---
+$toy_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$is_logged_in = isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true;
-$current_username = $is_logged_in ? htmlspecialchars($_SESSION["username"]) : "Guest"; 
-
-// --- 3. LOGIC: DATA FETCHING ---
-$game_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-if ($game_id === 0) {
-    $_SESSION["error"] = "ไม่พบ ID เกมที่ต้องการดู!";
-    header("Location: allgame.php");
-    exit;
-}
-
-$sql = "SELECT * FROM games WHERE id = ? LIMIT 1";
+// สมมติฐานข้อมูลมีคอลัมน์: brand, material, scale, age_range, stock_status
+$sql = "SELECT * FROM products WHERE id = ? LIMIT 1";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $game_id);
+$stmt->bind_param("i", $toy_id);
 $stmt->execute();
-$game = $stmt->get_result()->fetch_assoc();
+$product = $stmt->get_result()->fetch_assoc();
 
-if (!$game) {
-    $_SESSION["error"] = "ไม่พบข้อมูลเกม";
-    header("Location: allgame.php");
+if (!$product) {
+    header("Location: all_toys.php");
     exit;
 }
 
-// --- 4. PREPARE DISPLAY DATA ---
+// --- 2. PREPARE DATA ---
 $display = [
-    'title'       => htmlspecialchars($game['title']),
-    'short_desc'  => htmlspecialchars($game['description']),
-    'long_desc'   => nl2br(htmlspecialchars($game['long_description'])),
-    'genre'       => htmlspecialchars($game['genre']),
-    'image'       => !empty($game['image_url']) ? $game['image_url'] : 'https://placehold.co/1200x600/374151/ffffff?text=No+Image',
-    'price_raw'   => (float)$game['price'],
-    'price_fmt'   => number_format((float)$game['price'], 2),
-    'rating'      => (float)$game['rating'],
-    'release'     => date('d F Y', strtotime($game['release_date'])),
-    'developer'   => htmlspecialchars($game['developer'])
+    'name'        => htmlspecialchars($product['name']),
+    'brand'       => htmlspecialchars($product['brand']),
+    'price_fmt'   => number_format($product['price'], 2),
+    'image'       => $product['image_url'] ?: 'https://placehold.co/800x800?text=Toy+Image',
+    'desc'        => nl2br(htmlspecialchars($product['description'])),
+    'material'    => htmlspecialchars($product['material']), // เช่น PVC, ABS, Die-cast
+    'scale'       => htmlspecialchars($product['scale']),    // เช่น 1/6, Non-scale
+    'age'         => htmlspecialchars($product['age_range']), // เช่น 15+
+    'status'      => ($product['stock'] > 0) ? 'มีสินค้าพร้อมส่ง' : 'สินค้าหมด',
+    'status_color'=> ($product['stock'] > 0) ? 'text-green-400' : 'text-red-400'
 ];
-
-// Genre Styling Logic
-$genre_map = [
-    'Survival'  => 'bg-orange-500/20 text-orange-500',
-    'Adventure' => 'bg-green-500/20 text-green-500',
-    'Racing'    => 'bg-yellow-500/20 text-yellow-500',
-    'Strategy'  => 'bg-amber-600/20 text-amber-600'
-];
-$genre_class = $genre_map[$display['genre']] ?? 'bg-indigo-500/20 text-indigo-400';
-
-$stmt->close();
-$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -66,111 +37,109 @@ $conn->close();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $display['title'] ?> | YoToy Shop</title>
+    <title><?= $display['name'] ?> | YoToy Store</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
-        .glass { background: rgba(31, 41, 55, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700&display=swap');
+        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .toy-card { background: white; border-radius: 2rem; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1); }
+        .badge-brand { background: #fee2e2; color: #ef4444; border: 1px solid #fecaca; }
     </style>
 </head>
-<body class="bg-fixed bg-cover bg-center" style="background-image: url('<?= $display['image'] ?>');">
-    
-    <div class="min-h-screen bg-slate-950/80 flex flex-col">
+<body class="bg-gray-50">
+
+    <main class="container mx-auto px-4 py-8 md:py-16">
         
-        <header class="sticky top-0 z-50 glass">
-            <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
-                <a href="index.php" class="text-2xl font-black text-indigo-500 uppercase tracking-tighter">
-                    Yo<span class="text-orange-500">Toy</span>
-                </a>
-                <div class="hidden md:flex items-center space-x-6">
-                    <a href="allgame.php" class="hover:text-indigo-400 transition">เกมทั้งหมด</a>
-                    <button id="open-cart-btn" class="relative p-2 text-gray-300 hover:text-orange-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        <span id="cart-item-count" class="absolute -top-1 -right-1 bg-orange-600 text-[10px] font-bold px-1.5 rounded-full">0</span>
-                    </button>
-                    <?php if ($is_logged_in): ?>
-                        <a href="?logout=1" class="text-sm bg-gray-700 px-4 py-2 rounded-full hover:bg-gray-600 transition">ออกจากระบบ</a>
-                    <?php else: ?>
-                        <a href="login.php" class="text-sm bg-orange-600 px-4 py-2 rounded-full hover:bg-orange-700 transition">เข้าสู่ระบบ</a>
-                    <?php endif; ?>
-                </div>
-            </nav>
-        </header>
+        <nav class="mb-8 text-sm text-gray-500">
+            <a href="index.php" class="hover:text-red-500">หน้าแรก</a> / 
+            <a href="all_toys.php" class="hover:text-red-500">ของเล่นทั้งหมด</a> / 
+            <span class="text-gray-800"><?= $display['name'] ?></span>
+        </nav>
 
-        <main class="container mx-auto px-4 py-12 flex-grow">
-            <article class="max-w-6xl mx-auto glass rounded-3xl overflow-hidden shadow-2xl">
+        <div class="toy-card overflow-hidden">
+            <div class="flex flex-col lg:flex-row">
                 
-                <div class="relative h-[300px] md:h-[500px]">
-                    <img src="<?= $display['image'] ?>" alt="<?= $display['title'] ?>" class="w-full h-full object-cover">
-                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent"></div>
-                    <div class="absolute bottom-0 left-0 p-8 md:p-12 w-full">
-                        <span class="<?= $genre_class ?> px-3 py-1 rounded text-xs font-bold uppercase tracking-widest mb-4 inline-block">
-                            <?= $display['genre'] ?>
-                        </span>
-                        <h1 class="text-4xl md:text-6xl font-extrabold text-white"><?= $display['title'] ?></h1>
+                <div class="lg:w-1/2 bg-white p-4 md:p-12 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-gray-100">
+                    <div class="relative group">
+                        <img src="<?= $display['image'] ?>" alt="<?= $display['name'] ?>" 
+                             class="max-h-[500px] object-contain transition-transform duration-500 group-hover:scale-105">
+                        
+                        <div class="absolute bottom-0 right-0 bg-gray-100/80 p-2 rounded-full">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
                     </div>
                 </div>
 
-                <div class="p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div class="lg:w-1/2 p-8 md:p-12 flex flex-col">
                     
-                    <div class="lg:col-span-2 space-y-8">
-                        <section>
-                            <h2 class="text-indigo-400 text-sm font-bold uppercase tracking-[0.2em] mb-4">เกี่ยวกับเกม</h2>
-                            <p class="text-xl text-slate-200 font-light italic mb-6">"<?= $display['short_desc'] ?>"</p>
-                            <div class="text-slate-400 leading-relaxed space-y-4">
-                                <?= $display['long_desc'] ?>
-                            </div>
-                        </section>
-
-                        <section class="pt-8 border-t border-slate-700/50">
-                            <h2 class="text-orange-500 text-sm font-bold uppercase tracking-[0.2em] mb-6">คะแนนรีวิวผู้เล่น</h2>
-                            <div class="flex items-end space-x-4">
-                                <span class="text-7xl font-black leading-none"><?= number_format($display['rating'], 1) ?></span>
-                                <div class="mb-1">
-                                    <div class="flex text-orange-400 mb-1">
-                                        <?php for($i=1; $i<=5; $i++): ?>
-                                            <svg class="w-5 h-5 <?= ($i <= floor($display['rating'])) ? 'fill-current' : 'text-slate-600' ?>" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
-                                        <?php endfor; ?>
-                                    </div>
-                                    <p class="text-xs text-slate-500">จากคะแนนโหวตทั่วโลก</p>
-                                </div>
-                            </div>
-                        </section>
+                    <div class="flex justify-between items-start mb-4">
+                        <span class="badge-brand px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">
+                            <?= $display['brand'] ?>
+                        </span>
+                        <span class="text-sm font-bold <?= $display['status_color'] ?>">
+                            ● <?= $display['status'] ?>
+                        </span>
                     </div>
 
-                    <aside>
-                        <div class="bg-slate-800/40 rounded-2xl p-6 border border-white/5 sticky top-28">
-                            <div class="mb-6">
-                                <p class="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">ราคา</p>
-                                <p class="text-4xl font-black text-white">฿<?= $display['price_fmt'] ?></p>
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+                        <?= $display['name'] ?>
+                    </h1>
+
+                    <div class="mb-8">
+                        <span class="text-4xl font-bold text-red-500">฿<?= $display['price_fmt'] ?></span>
+                        <span class="text-sm text-gray-400 ml-2">รวมภาษีมูลค่าเพิ่มแล้ว</span>
+                    </div>
+
+                    <div class="space-y-6 flex-grow">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <p class="text-xs text-gray-400 uppercase font-bold">สเกล / ขนาด</p>
+                                <p class="text-gray-800 font-medium"><?= $display['scale'] ?></p>
                             </div>
-
-                            <button id="add-to-cart-btn" 
-                                    data-id="<?= $game['id'] ?>" 
-                                    data-title="<?= $display['title'] ?>"
-                                    data-price="<?= $display['price_raw'] ?>"
-                                    class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 flex justify-center items-center space-x-2 mb-8">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                <span>เพิ่มลงตะกร้า</span>
-                            </button>
-
-                            <div class="space-y-4 pt-6 border-t border-slate-700/50 text-sm">
-                                <div class="flex justify-between"><span class="text-slate-500">นักพัฒนา</span><span class="font-semibold text-slate-200"><?= $display['developer'] ?></span></div>
-                                <div class="flex justify-between"><span class="text-slate-500">วางจำหน่าย</span><span class="font-semibold text-slate-200"><?= $display['release'] ?></span></div>
-                                <div class="flex justify-between"><span class="text-slate-500">หมวดหมู่</span><span class="font-semibold text-slate-200"><?= $display['genre'] ?></span></div>
+                            <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <p class="text-xs text-gray-400 uppercase font-bold">วัสดุหลัก</p>
+                                <p class="text-gray-800 font-medium"><?= $display['material'] ?></p>
                             </div>
                         </div>
-                    </aside>
+
+                        <div>
+                            <h3 class="text-gray-900 font-bold mb-2">รายละเอียดสินค้า</h3>
+                            <p class="text-gray-600 leading-relaxed text-sm">
+                                <?= $display['desc'] ?>
+                            </p>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <p class="text-sm text-gray-500">
+                                <strong>เหมาะสำหรับอายุ:</strong> <?= $display['age'] ?> ปีขึ้นไป
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-10 flex flex-col sm:flex-row gap-4">
+                        <button class="flex-grow bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-2xl shadow-lg shadow-red-200 transition-all active:scale-95 flex justify-center items-center gap-2">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            เพิ่มลงตะกร้า
+                        </button>
+                        <button class="bg-gray-900 hover:bg-black text-white p-4 rounded-2xl transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
 
                 </div>
-            </article>
-        </main>
-
-        <footer class="py-10 text-center text-slate-500 text-sm border-t border-white/5 glass">
-            <p>&copy; 2026 YoToy Digital Games Store. All rights reserved.</p>
-        </footer>
-    </div>
-
-    <div id="cart-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            </div>
         </div>
+
+        <section class="mt-16">
+            <h2 class="text-2xl font-bold mb-8">สินค้าที่ใกล้เคียงกัน</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition">
+                    <img src="https://placehold.co/200x200" class="w-full mb-4">
+                    <p class="text-xs text-gray-400 font-bold uppercase">Bandai</p>
+                    <p class="font-bold text-gray-800 truncate">HG 1/144 Gundam Aerial</p>
+                    <p class="text-red-500 font-bold">฿550.00</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
