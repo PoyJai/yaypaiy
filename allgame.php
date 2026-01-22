@@ -1,0 +1,195 @@
+<?php
+session_start();
+require_once 'db_config.php'; 
+
+// 1. Logout Logic
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header('location: login.php'); 
+    exit;
+}
+
+// 2. Auth Check (ปรับให้เหมือน index.php เพื่อให้ Guest เข้าชมได้)
+$is_logged_in = isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true;
+$current_username = $is_logged_in ? htmlspecialchars($_SESSION["username"]) : "Guest"; 
+
+// 3. Pagination Logic
+$games_per_page = 12; // ปรับเป็น 12 เพื่อให้หารลงตัวกับ Grid 2, 3, 4
+$current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($current_page < 1) $current_page = 1;
+
+$total_games = 0;
+if (isset($conn) && $conn->ping()) {
+    $count_res = $conn->query("SELECT COUNT(*) AS total FROM games");
+    $total_games = $count_res ? $count_res->fetch_assoc()['total'] : 0;
+}
+
+$total_pages = ceil($total_games / $games_per_page);
+$offset = ($current_page - 1) * $games_per_page;
+
+// 4. Fetch Games
+$games = [];
+if ($total_games > 0) {
+    $sql = "SELECT id, title, description, genre, image_url, price FROM games LIMIT $games_per_page OFFSET $offset";
+    $result = $conn->query($sql);
+    while($row = $result->fetch_assoc()) { $games[] = $row; }
+}
+$conn->close();
+?>
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คลังเกมสุดน่ารัก - StunShop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'toy-pink': '#FFB4B4',
+                        'toy-blue': '#B4E4FF',
+                        'toy-yellow': '#FDF7C3',
+                        'toy-orange': '#FFDEB4',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Mitr', sans-serif; background-color: #FFFDF9; }
+        .game-card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .game-card:hover { transform: scale(1.02); }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b-4 border-dashed border-toy-orange">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="index.php" class="text-3xl font-black flex items-center space-x-2">
+                <span class="bg-toy-pink text-white px-3 py-1 rounded-2xl shadow-sm rotate-[-2deg]">Yo</span>
+                <span class="text-toy-blue">Toy</span>
+            </a>
+            <div class="flex items-center space-x-6">
+                <a href="index.php" class="font-bold hover:text-toy-pink transition">หน้าแรก</a>
+                <button id="open-cart-btn" class="relative bg-white border-2 border-toy-blue p-2 rounded-full hover:bg-toy-blue group transition">
+                    <svg class="w-6 h-6 text-toy-blue group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span id="cart-item-count" class="absolute -top-2 -right-2 bg-toy-pink text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">0</span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-black text-gray-800 mb-2">🍭 คลังเกมทั้งหมด</h1>
+            <p class="text-gray-400">เลือกเกมที่ชอบ แล้วไปสนุกกันเลย!</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <?php foreach ($games as $game): ?>
+                <div class="game-card bg-white rounded-[2rem] shadow-sm border border-gray-100 p-4 relative overflow-hidden">
+                    <img src="<?= htmlspecialchars($game['image_url'] ?: 'https://placehold.co/400x250') ?>" class="w-full h-40 object-cover rounded-2xl mb-4">
+                    <h3 class="font-bold text-lg text-gray-700 line-clamp-1"><?= htmlspecialchars($game['title']) ?></h3>
+                    <div class="text-toy-pink font-black text-xl my-2">฿<?= number_format($game['price'], 2) ?></div>
+                    
+                    <div class="flex space-x-2 mt-4">
+                        <a href="game_detail.php?id=<?= $game['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 rounded-xl text-sm font-bold hover:bg-gray-100 transition">รายละเอียด</a>
+                        <button 
+                            onclick="addToCart(<?= $game['id'] ?>, '<?= addslashes($game['title']) ?>', <?= $game['price'] ?>)"
+                            class="px-4 py-2 bg-toy-yellow text-yellow-700 rounded-xl font-bold hover:bg-yellow-200 transition">
+                            🛒
+                        </button>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($total_pages > 1): ?>
+        <div class="mt-16 flex justify-center space-x-2">
+            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                <a href="allgame.php?page=<?= $i ?>" 
+                   class="px-5 py-2 rounded-xl font-bold transition <?= $i == $current_page ? 'bg-toy-pink text-white shadow-md' : 'bg-white text-gray-400 hover:bg-toy-pink/10' ?>">
+                    <?= $i ?>
+                </a>
+            <?php endfor; ?>
+        </div>
+        <?php endif; ?>
+    </main>
+
+    <div id="cart-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl relative">
+            <h2 class="text-2xl font-black text-center mb-6">🛒 ตะกร้าของเล่น</h2>
+            <div id="cart-items-list" class="space-y-4 max-h-60 overflow-y-auto pr-2"></div>
+            <div class="mt-8 pt-6 border-t-2 border-dashed border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="font-bold text-gray-400">ราคารวม:</span>
+                    <span id="cart-total-amount" class="text-3xl font-black text-toy-pink">฿0.00</span>
+                </div>
+                <button onclick="location.href='checkout.php'" id="checkout-btn" class="w-full py-4 bg-toy-blue text-white font-black text-xl rounded-2xl shadow-md disabled:opacity-50">ชำระเงิน ✨</button>
+                <button onclick="document.getElementById('cart-modal').classList.add('hidden')" class="w-full mt-2 text-gray-400 font-bold text-sm">ปิดหน้าต่าง</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ฟังก์ชันจัดการตะกร้าสินค้า (แก้ไข Bug จากโค้ดเดิม)
+        function getCart() { return JSON.parse(localStorage.getItem('game_cart') || '[]'); }
+        function saveCart(cart) { localStorage.setItem('game_cart', JSON.stringify(cart)); updateUI(); }
+
+        function addToCart(id, title, price) {
+            let cart = getCart();
+            if (cart.some(item => item.id == id)) {
+                alert('คุณมีเกมนี้ในตะกร้าแล้วนะ! 🧸');
+                return;
+            }
+            cart.push({ id, title, price });
+            saveCart(cart);
+            alert('เพิ่ม ' + title + ' ลงตะกร้าแล้ว! ✨');
+        }
+
+        function removeItem(index) {
+            let cart = getCart();
+            cart.splice(index, 1);
+            saveCart(cart);
+        }
+
+        function updateUI() {
+            const cart = getCart();
+            const list = document.getElementById('cart-items-list');
+            const totalEl = document.getElementById('cart-total-amount');
+            const countEl = document.getElementById('cart-item-count');
+            
+            countEl.textContent = cart.length;
+            countEl.style.display = cart.length > 0 ? 'flex' : 'none';
+
+            let total = 0;
+            list.innerHTML = cart.length ? '' : '<p class="text-center text-gray-300 py-4">ตะกร้ายังว่างอยู่นะ...</p>';
+            
+            cart.forEach((item, i) => {
+                total += parseFloat(item.price);
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-toy-yellow/30 p-4 rounded-2xl border border-toy-yellow">
+                        <span class="font-bold text-gray-700">${item.title}</span>
+                        <div class="flex items-center space-x-3">
+                            <span class="text-toy-pink font-black">฿${item.price}</span>
+                            <button onclick="removeItem(${i})" class="text-red-300">✕</button>
+                        </div>
+                    </div>`;
+            });
+            totalEl.textContent = `฿${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('checkout-btn').disabled = cart.length === 0;
+        }
+
+        document.getElementById('open-cart-btn').onclick = () => {
+            updateUI();
+            document.getElementById('cart-modal').classList.remove('hidden');
+        };
+
+        document.addEventListener('DOMContentLoaded', updateUI);
+    </script>
+</body>
+</html>
