@@ -64,14 +64,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </script>
     <style>
         body { 
-            background-color: #FFFDF9; 
+            background-color: #a533be; 
             background-image: radial-gradient(#B4E4FF 0.5px, transparent 0.5px);
             background-size: 24px 24px;
             transition: background-color 0.3s ease;
         }
         /* Dark Mode Override */
         body.dark-mode { 
-            background-color: #1a1a1a; 
+            background-color: #22aeff; 
             background-image: radial-gradient(#2d3436 0.5px, transparent 0.5px);
             color: #f1f1f1;
         }
@@ -98,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 <body class="min-h-screen">
 
-    <header class="sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-4 border-toy-blue/30">
+    <header class="sticky top-0 z-50 bg-white/80 dark:bg-#22aeff/80 backdrop-blur-md border-b-4 border-toy-blue/30">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="index.php" class="text-3xl font-black italic tracking-tighter">
                 <span class="text-toy-pink">Yo</span><span class="text-toy-blue">toy</span>
@@ -136,40 +136,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
                                     <div class="text-center group">
                                         <div class="toy-card p-2 bg-toy-pink border-toy-pink overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix&backgroundColor=ffb4b4" alt="Staff" class="w-full h-auto rounded-2xl">
+                                            <img src="https://scontent-sin2-1.xx.fbcdn.net/v/t39.30808-6/504023507_2188243744959125_9126874887027941793_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=a5f93a&_nc_ohc=8cVqT-YNzFEQ7kNvwFPoMGq&_nc_oc=Adnj3z0O8I9u3Zwz1wrTSo9KglnsnRf6hHz7_JVzF9BME6OEBstHFRrGVWhmQarBaFldpQzk1X2UBlVAobMrTXHC&_nc_zt=23&_nc_ht=scontent-sin2-1.xx&_nc_gid=CEV7Q9yHezk7Cixpn0HjRA&oh=00_AfpMNRkLpDOgYMid5nEM5AqJMH4A4xmn6gZQccU9pe0mKQ&oe=6977DFD2" alt="Staff" class="w-full h-auto rounded-2xl">
                                         </div>
-                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">P' Stun</h4>
+                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">ธีรวัฒน์ วงษ์ประดิษฐ์</h4>
                                         <p class="text-[10px] font-bold text-toy-pink uppercase tracking-tighter">Founder / CEO</p>
                                     </div>
                                     <div class="text-center group">
                                         <div class="toy-card p-2 bg-toy-blue border-toy-blue overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Aria&backgroundColor=b4e4ff" alt="Staff" class="w-full h-auto rounded-2xl">
+                                            <img src="https://scontent-sin6-1.xx.fbcdn.net/v/t39.30808-6/605794618_2460676924373077_2330608387243931662_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=KVZSLUco204Q7kNvwG_8jsx&_nc_oc=Admv9Zt-8_xHKOCU3JWTC8Qg3xAlQgLSEbUFDbq0G1b1VfPwv6cCapl3CZITWlqDjMZi58590oiNdHk-UHskZnp3&_nc_zt=23&_nc_ht=scontent-sin6-1.xx&_nc_gid=nm-t8UIs0waCv94WeQGbAQ&oh=00_AfrBL7pPYa__vcskN1A4FXYnwI9j6IBFvlnAI85jT3jJgA&oe=6977EA5D" alt="Staff" class="w-full h-auto rounded-2xl">
                                         </div>
-                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">Nong Gift</h4>
+                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">พีนภัช เทศใจ</h4>
                                         <p class="text-[10px] font-bold text-toy-blue uppercase tracking-tighter">Customer Support</p>
                                     </div>
 
                                     <div class="text-center group">
                                         <div class="toy-card p-2 bg-toy-yellow border-toy-yellow overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Leo&backgroundColor=fdf7c3" alt="Staff" class="w-full h-auto rounded-2xl">
+                                            <img src="https://scontent-sin11-1.xx.fbcdn.net/v/t39.30808-6/485884965_1852284435610495_384791468940751663_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=QAg2393IwKgQ7kNvwG0EbAp&_nc_oc=AdlqFA0g-U-PIGqyhkUPRc8UibixOqzrGBnmiW3Lg3ihNQD7f4dwl6SN56HaRhNSkYSA9AHOU1s4R4GnML6--rtS&_nc_zt=23&_nc_ht=scontent-sin11-1.xx&_nc_gid=_9VMsVtACzj5_qc15FHjRA&oh=00_AfoDtAMnbYVq2jNSyObPKKrvsmlLqcm5Fsy20ukfx7J4jQ&oe=6977FF0D" alt="Staff" class="w-full h-auto rounded-2xl">
                                         </div>
-                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">P' Bank</h4>
+                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">วิสิทธิศักดิ์ เพ็งสูงเนิน</h4>
                                         <p class="text-[10px] font-bold text-toy-yellow uppercase tracking-tighter">Game Expert</p>
                                     </div>
 
                                     <div class="text-center group">
                                         <div class="toy-card p-2 bg-toy-purple border-toy-purple overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Milo&backgroundColor=e5d1fa" alt="Staff" class="w-full h-auto rounded-2xl">
+                                            <img src="https://scontent-sin2-1.xx.fbcdn.net/v/t39.30808-1/598947830_890073193357111_8454231932822282150_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=e99d92&_nc_ohc=xLEXPqEBxm8Q7kNvwHgkeCd&_nc_oc=AdnLJoUiRgbhyCwqjqR6KgFcRzTrMV91Y1acbM0G7g0cVZSb6AnhPTlyW4nln5OyenE10LE1XILtZWdvUGG-64yG&_nc_zt=24&_nc_ht=scontent-sin2-1.xx&_nc_gid=_Dzrz9tLnToCz3dyP1Enbw&oh=00_AfrfbRFr9bnj9pAVtI65pxSsaXrotkK0fejALo5ycSr8VQ&oe=6977FCEE" alt="Staff" class="w-full h-auto rounded-2xl">
                                         </div>
-                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">Nong View</h4>
+                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">มงคล ปิ่นพงษ์</h4>
                                         <p class="text-[10px] font-bold text-toy-purple uppercase tracking-tighter">Payment Admin</p>
                                     </div>
 
                                     <div class="text-center group col-span-2 md:col-span-1">
                                         <div class="toy-card p-2 bg-green-200 border-green-200 overflow-hidden mb-3 group-hover:scale-105 transition-transform">
-                                            <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Zoe&backgroundColor=bbf7d0" alt="Staff" class="w-full h-auto rounded-2xl">
+                                            <img src="https://scontent-sin6-3.xx.fbcdn.net/v/t39.30808-6/546633271_1435427491024073_9065147858167401018_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=6ee11a&_nc_ohc=WEMIiElcj2YQ7kNvwH4htEb&_nc_oc=AdnbM2sfmqeEkrDDkqbKYNCR1MZyUdQ8nWPPQMKL42gOMs7MS_8ldgpsqLtWUyiLRqxKXFW7g2D45enP5vsX8Y_4&_nc_zt=23&_nc_ht=scontent-sin6-3.xx&_nc_gid=BbCOGS09uaf0CTvlOCxOUg&oh=00_AfqD86U06X_HTrPZuTcVU4PjQ9BctQEU-dpSXSqIyIGKIg&oe=6977F2FB" alt="Staff" class="w-full h-auto rounded-2xl">
                                         </div>
-                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">P' Jame</h4>
+                                        <h4 class="font-black text-gray-700 dark:text-white text-sm">กฤต สมบุญโภชน์</h4>
                                         <p class="text-[10px] font-bold text-green-400 uppercase tracking-tighter">Technical Support</p>
                                     </div>
                                 </div>

@@ -1,34 +1,40 @@
 <?php
 session_start();
-require_once 'db_config.php'; 
+// ตรวจสอบชื่อไฟล์เชื่อมต่อฐานข้อมูลให้ตรงกับที่คุณใช้จริง (server.php หรือ db_config.php)
+include('server.php'); 
 
-// --- ส่วนประมวลผล Logic (สามารถแยกไฟล์ได้ตามความเหมาะสม) ---
 if (isset($_POST['reset_password'])) {
     $username = mysqli_real_escape_string($conn, $_POST['username']);
     $pass1 = mysqli_real_escape_string($conn, $_POST['password_1']);
     $pass2 = mysqli_real_escape_string($conn, $_POST['password_2']);
 
-    if ($pass1 !== $pass2) {
+    // 1. ตรวจสอบว่ากรอกข้อมูลครบไหม
+    if (empty($username) || empty($pass1) || empty($pass2)) {
+        $_SESSION['error'] = "กรุณากรอกข้อมูลให้ครบทุกช่อง";
+    } 
+    // 2. ตรวจสอบรหัสผ่านให้ตรงกัน
+    else if ($pass1 !== $pass2) {
         $_SESSION['error'] = "รหัสผ่านไม่ตรงกัน กรุณาลองใหม่";
-        header("location: forgot.php");
-        exit();
-    }
-
-    $user_check = "SELECT * FROM users WHERE username = '$username' LIMIT 1";
-    $result = mysqli_query($conn, $user_check);
-    
-    if (mysqli_num_rows($result) > 0) {
-        $hashed_password = password_hash($pass1, PASSWORD_DEFAULT);
-        $sql = "UPDATE users SET password = '$hashed_password' WHERE username = '$username'";
-        if (mysqli_query($conn, $sql)) {
-            $_SESSION['success'] = "เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ";
-            header("location: login.php");
-            exit();
+    } 
+    else {
+        // 3. ตรวจสอบว่ามี User นี้ในระบบจริงไหม
+        $user_check = "SELECT * FROM users WHERE username = '$username' LIMIT 1";
+        $result = mysqli_query($conn, $user_check);
+        
+        if (mysqli_num_rows($result) > 0) {
+            $hashed_password = password_hash($pass1, PASSWORD_DEFAULT);
+            $sql = "UPDATE users SET password = '$hashed_password' WHERE username = '$username'";
+            
+            if (mysqli_query($conn, $sql)) {
+                $_SESSION['success'] = "เปลี่ยนรหัสผ่านสำเร็จ! กรุณาเข้าสู่ระบบ";
+                header("location: login.php");
+                exit();
+            } else {
+                $_SESSION['error'] = "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+            }
         } else {
-            $_SESSION['error'] = "เกิดข้อผิดพลาดในการบันทึกข้อมูล";
+            $_SESSION['error'] = "ไม่พบชื่อผู้ใช้งานนี้ในระบบ";
         }
-    } else {
-        $_SESSION['error'] = "ไม่พบชื่อผู้ใช้งานนี้ในระบบ";
     }
 }
 ?>
@@ -38,7 +44,7 @@ if (isset($_POST['reset_password'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>กู้คืนรหัสผ่าน | YoToy ✨</title>
+    <title>กู้คืนรหัสผ่าน | STUNSHOP ✨</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;600&display=swap" rel="stylesheet">
     <script>
@@ -48,8 +54,6 @@ if (isset($_POST['reset_password'])) {
                     colors: {
                         'toy-pink': '#FFB4B4',
                         'toy-blue': '#B4E4FF',
-                        'toy-yellow': '#FDF7C3',
-                        'toy-purple': '#E5D1FA',
                     },
                     fontFamily: { sans: ['Mitr', 'sans-serif'] },
                 }
@@ -66,7 +70,7 @@ if (isset($_POST['reset_password'])) {
             background: white;
             border: 4px solid #F3F4F6;
             border-radius: 3rem;
-            box-shadow: 12px 12px 0px #FFB4B4; /* เงาสีชมพูพาสเทล */
+            box-shadow: 12px 12px 0px #FFB4B4;
         }
         .input-pastel {
             background-color: #F9FAFB;
@@ -92,11 +96,11 @@ if (isset($_POST['reset_password'])) {
             <p class="text-gray-400 mt-2 font-medium italic">Reset your magic key! 🗝️</p>
         </div>
 
-        <form action="forgot.php" method="post" class="toy-card p-10 relative overflow-hidden">
+        <form action="forgot_password.php" method="post" class="toy-card p-10 relative overflow-hidden">
             <h2 class="text-2xl font-black text-gray-700 mb-6 text-center">ตั้งรหัสผ่านใหม่</h2>
 
             <?php if (isset($_SESSION['error'])): ?>
-                <div class="mb-6 p-4 bg-red-50 border-2 border-red-100 text-red-500 rounded-2xl text-center text-sm font-bold animate-shake">
+                <div class="mb-6 p-4 bg-red-50 border-2 border-red-100 text-red-500 rounded-2xl text-center text-sm font-bold">
                     <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
                 </div>
             <?php endif; ?>
@@ -111,7 +115,7 @@ if (isset($_POST['reset_password'])) {
                     <label class="block text-sm font-bold text-gray-500 mb-2 ml-2">รหัสผ่านใหม่</label>
                     <input type="password" name="password_1" required class="input-pastel w-full px-5 py-4 text-gray-700" placeholder="••••••••">
                 </div>
-
+                
                 <div>
                     <label class="block text-sm font-bold text-gray-500 mb-2 ml-2">ยืนยันรหัสผ่านใหม่</label>
                     <input type="password" name="password_2" required class="input-pastel w-full px-5 py-4 text-gray-700" placeholder="••••••••">
@@ -132,4 +136,4 @@ if (isset($_POST['reset_password'])) {
     </div>
 
 </body>
-</html>s
+</html>

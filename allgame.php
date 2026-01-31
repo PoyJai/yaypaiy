@@ -9,12 +9,12 @@ if (isset($_GET['logout'])) {
     exit;
 }
 
-// 2. Auth Check (ปรับให้เหมือน index.php เพื่อให้ Guest เข้าชมได้)
+// 2. Auth Check
 $is_logged_in = isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true;
 $current_username = $is_logged_in ? htmlspecialchars($_SESSION["username"]) : "Guest"; 
 
 // 3. Pagination Logic
-$games_per_page = 12; // ปรับเป็น 12 เพื่อให้หารลงตัวกับ Grid 2, 3, 4
+$games_per_page = 12;
 $current_page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($current_page < 1) $current_page = 1;
 
@@ -63,6 +63,9 @@ $conn->close();
         body { font-family: 'Mitr', sans-serif; background-color: #FFFDF9; }
         .game-card { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .game-card:hover { transform: scale(1.02); }
+        /* ซ่อน Scrollbar สำหรับรายการตะกร้า */
+        #cart-items-list::-webkit-scrollbar { width: 4px; }
+        #cart-items-list::-webkit-scrollbar-thumb { background: #FFB4B4; border-radius: 10px; }
     </style>
 </head>
 <body class="text-gray-700">
@@ -99,8 +102,8 @@ $conn->close();
                     <div class="flex space-x-2 mt-4">
                         <a href="game_detail.php?id=<?= $game['id'] ?>" class="flex-1 text-center py-2 bg-gray-50 rounded-xl text-sm font-bold hover:bg-gray-100 transition">รายละเอียด</a>
                         <button 
-                            onclick="addToCart(<?= $game['id'] ?>, '<?= addslashes($game['title']) ?>', <?= $game['price'] ?>)"
-                            class="px-4 py-2 bg-toy-yellow text-yellow-700 rounded-xl font-bold hover:bg-yellow-200 transition">
+                            onclick="addToCart({id: '<?= $game['id'] ?>', title: '<?= addslashes($game['title']) ?>', price: '<?= $game['price'] ?>'})"
+                            class="px-4 py-2 bg-toy-yellow text-yellow-700 rounded-xl font-bold hover:bg-yellow-200 transition active:scale-90 shadow-sm">
                             🛒
                         </button>
                     </div>
@@ -123,73 +126,138 @@ $conn->close();
     <div id="cart-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[110] hidden flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md p-8 rounded-[2rem] shadow-2xl relative">
             <h2 class="text-2xl font-black text-center mb-6">🛒 ตะกร้าของเล่น</h2>
-            <div id="cart-items-list" class="space-y-4 max-h-60 overflow-y-auto pr-2"></div>
+            <div id="cart-items-list" class="space-y-4 max-h-60 overflow-y-auto pr-2">
+                </div>
             <div class="mt-8 pt-6 border-t-2 border-dashed border-gray-100">
                 <div class="flex justify-between items-center mb-6">
                     <span class="font-bold text-gray-400">ราคารวม:</span>
                     <span id="cart-total-amount" class="text-3xl font-black text-toy-pink">฿0.00</span>
                 </div>
-                <button onclick="location.href='checkout.php'" id="checkout-btn" class="w-full py-4 bg-toy-blue text-white font-black text-xl rounded-2xl shadow-md disabled:opacity-50">ชำระเงิน ✨</button>
-                <button onclick="document.getElementById('cart-modal').classList.add('hidden')" class="w-full mt-2 text-gray-400 font-bold text-sm">ปิดหน้าต่าง</button>
+                <button onclick="location.href='checkout.php'" id="checkout-btn" class="w-full py-4 bg-toy-blue text-white font-black text-xl rounded-2xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-400 transition">ชำระเงิน ✨</button>
+                <button onclick="document.getElementById('cart-modal').classList.add('hidden')" class="w-full mt-2 text-gray-400 font-bold text-sm hover:text-gray-600 transition">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
 
-    <script>
-        // ฟังก์ชันจัดการตะกร้าสินค้า (แก้ไข Bug จากโค้ดเดิม)
-        function getCart() { return JSON.parse(localStorage.getItem('game_cart') || '[]'); }
-        function saveCart(cart) { localStorage.setItem('game_cart', JSON.stringify(cart)); updateUI(); }
+<script>
+    const CART_KEY = 'game_cart';
 
-        function addToCart(id, title, price) {
-            let cart = getCart();
-            if (cart.some(item => item.id == id)) {
-                alert('คุณมีเกมนี้ในตะกร้าแล้วนะ! 🧸');
-                return;
+    // ดึงข้อมูลจาก LocalStorage
+    function getCart() { 
+        return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); 
+    }
+
+    // บันทึกข้อมูลและอัปเดตหน้าจอ
+    function saveCart(cart) { 
+        localStorage.setItem(CART_KEY, JSON.stringify(cart)); 
+        updateUI(); 
+    }
+
+    // เพิ่มสินค้า (ปรับปรุง: ถ้ามีอยู่แล้วให้ +1 จำนวน)
+    function addToCart(product) {
+        let cart = getCart();
+        const existingItem = cart.find(item => item.id == product.id);
+
+        if (existingItem) {
+            // ถ้ามีเกมนี้ในตะกร้าแล้ว ให้เพิ่มจำนวน (quantity)
+            existingItem.quantity = (existingItem.quantity || 1) + 1;
+        } else {
+            // ถ้ายังไม่มี ให้เพิ่มเข้าตะกร้าโดยเริ่มที่ 1 ชิ้น
+            product.quantity = 1;
+            cart.push(product);
+        }
+        
+        saveCart(cart);
+        
+        // แจ้งเตือนแบบน่ารักๆ
+        const msg = document.createElement('div');
+        msg.className = "fixed bottom-5 right-5 bg-toy-pink text-white px-6 py-3 rounded-2xl shadow-lg z-[200] animate-bounce font-bold";
+        msg.innerHTML = `✨ เพิ่ม ${product.title} แล้วน้า!`;
+        document.body.appendChild(msg);
+        setTimeout(() => msg.remove(), 2000);
+    }
+
+    // ฟังก์ชันบวกลบจำนวนใน Modal
+    window.updateQty = (id, delta) => {
+        let cart = getCart();
+        const index = cart.findIndex(item => item.id == id);
+        if (index > -1) {
+            cart[index].quantity = (cart[index].quantity || 1) + delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
             }
-            cart.push({ id, title, price });
-            saveCart(cart);
-            alert('เพิ่ม ' + title + ' ลงตะกร้าแล้ว! ✨');
-        }
-
-        function removeItem(index) {
-            let cart = getCart();
-            cart.splice(index, 1);
             saveCart(cart);
         }
+    };
 
-        function updateUI() {
-            const cart = getCart();
-            const list = document.getElementById('cart-items-list');
-            const totalEl = document.getElementById('cart-total-amount');
-            const countEl = document.getElementById('cart-item-count');
-            
-            countEl.textContent = cart.length;
-            countEl.style.display = cart.length > 0 ? 'flex' : 'none';
+    // ลบสินค้าออกทันที
+    function removeItem(index) {
+        let cart = getCart();
+        cart.splice(index, 1);
+        saveCart(cart);
+    }
 
+    // อัปเดตการแสดงผล UI
+    function updateUI() {
+        const cart = getCart();
+        const list = document.getElementById('cart-items-list');
+        const totalEl = document.getElementById('cart-total-amount');
+        const countEl = document.getElementById('cart-item-count');
+        const checkoutBtn = document.getElementById('checkout-btn');
+        
+        // นับจำนวนชิ้นรวมทั้งหมด
+        const totalQty = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        
+        if (countEl) {
+            countEl.textContent = totalQty;
+            countEl.style.display = totalQty > 0 ? 'flex' : 'none';
+        }
+
+        if (list) {
             let total = 0;
-            list.innerHTML = cart.length ? '' : '<p class="text-center text-gray-300 py-4">ตะกร้ายังว่างอยู่นะ...</p>';
+            list.innerHTML = cart.length ? '' : '<div class="text-center py-10 text-gray-300 font-bold">ตะกร้ายังว่างอยู่นะ... 🧸</div>';
             
             cart.forEach((item, i) => {
-                total += parseFloat(item.price);
+                const qty = item.quantity || 1;
+                const price = parseFloat(item.price);
+                total += price * qty;
+                
                 list.innerHTML += `
-                    <div class="flex justify-between items-center bg-toy-yellow/30 p-4 rounded-2xl border border-toy-yellow">
-                        <span class="font-bold text-gray-700">${item.title}</span>
-                        <div class="flex items-center space-x-3">
-                            <span class="text-toy-pink font-black">฿${item.price}</span>
-                            <button onclick="removeItem(${i})" class="text-red-300">✕</button>
+                    <div class="flex flex-col bg-toy-yellow/20 p-4 rounded-3xl border border-toy-yellow/50 shadow-sm mb-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="font-bold text-gray-700 truncate w-40">${item.title}</span>
+                            <button onclick="removeItem(${i})" class="text-red-300 hover:text-red-500 transition">✕</button>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-toy-pink font-black text-sm">฿${price.toLocaleString()}</span>
+                            
+                            <div class="flex items-center gap-2 bg-white rounded-xl px-2 py-1 border border-gray-100">
+                                <button onclick="updateQty('${item.id}', -1)" class="w-6 h-6 flex items-center justify-center bg-gray-50 rounded-lg font-bold hover:bg-red-50">-</button>
+                                <span class="font-black text-xs w-4 text-center">${qty}</span>
+                                <button onclick="updateQty('${item.id}', 1)" class="w-6 h-6 flex items-center justify-center bg-gray-50 rounded-lg font-bold hover:bg-blue-50">+</button>
+                            </div>
                         </div>
                     </div>`;
             });
-            totalEl.textContent = `฿${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('checkout-btn').disabled = cart.length === 0;
+            
+            if (totalEl) totalEl.textContent = `฿${total.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            if (checkoutBtn) checkoutBtn.disabled = cart.length === 0;
         }
+    }
 
-        document.getElementById('open-cart-btn').onclick = () => {
-            updateUI();
-            document.getElementById('cart-modal').classList.remove('hidden');
-        };
+    // เปิด Modal
+    document.getElementById('open-cart-btn').onclick = () => {
+        updateUI();
+        document.getElementById('cart-modal').classList.remove('hidden');
+    };
 
-        document.addEventListener('DOMContentLoaded', updateUI);
-    </script>
+    // ปิด Modal เมื่อคลิกข้างนอก
+    window.onclick = (e) => {
+        const modal = document.getElementById('cart-modal');
+        if (e.target === modal) modal.classList.add('hidden');
+    };
+
+    document.addEventListener('DOMContentLoaded', updateUI);
+</script>
 </body>
 </html>
